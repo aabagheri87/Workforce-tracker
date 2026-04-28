@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workforce Productivity — Flag Review Tracker</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f5f4f1; min-height: 100vh; color: #1a1a1a; }
+
+.app-header {
+  background: #1a1a2e;
+  padding: 1.1rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 2px solid #e8361a;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.app-header h1 { color: #fff; font-size: 16px; font-weight: 600; }
+.app-header .subtitle { color: #8888aa; font-size: 11px; margin-top: 2px; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
+.header-badge { background: #e8361a; color: #fff; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+.conn-status { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+.conn-status.connected { background: #d1fae5; color: #065f46; }
+.conn-status.disconnected { background: #fee2e2; color: #7f1d1d; }
+
+/* Login */
+.login-wrap { max-width: 500px; margin: 3rem auto; padding: 0 1.5rem; }
+.login-card { background: #fff; border-radius: 12px; border: 0.5px solid #e5e3de; padding: 2rem; }
+.login-card h2 { font-size: 16px; font-weight: 600; margin-bottom: 0.25rem; }
+.login-card .intro { font-size: 12px; color: #888; margin-bottom: 1.25rem; }
+.api-note { background: #eff6ff; border: 0.5px solid #bfdbfe; border-radius: 7px; padding: 0.75rem 1rem; font-size: 11px; color: #1e40af; margin-bottom: 1.25rem; line-height: 1.6; }
+.form-group { margin-bottom: 0.9rem; }
+.form-group label { display: block; font-size: 12px; font-weight: 500; color: #444; margin-bottom: 4px; }
+.form-group input {
+  width: 100%; border: 0.5px solid #d8d6d0; border-radius: 7px;
+  padding: 8px 12px; font-size: 13px; font-family: inherit;
+  background: #fafaf8; color: #1a1a1a; transition: border-color 0.15s;
+}
+.form-group input:focus { outline: none; border-color: #e8361a; background: #fff; }
+.form-hint { font-size: 11px; color: #aaa; margin-top: 3px; }
+.login-btn {
+  width: 100%; padding: 10px; background: #1a1a2e; color: #fff;
+  border: none; border-radius: 7px; font-size: 14px; font-weight: 500;
+  font-family: inherit; cursor: pointer; margin-top: 0.5rem; transition: background 0.15s;
+}
+.login-btn:hover { background: #2d2d50; }
+.login-btn:disabled { background: #aaa; cursor: not-allowed; }
+.error-msg { background: #fee2e2; color: #7f1d1d; border-radius: 7px; padding: 0.6rem 1rem; font-size: 12px; margin-top: 0.75rem; display: none; white-space: pre-wrap; }
+.divider { border: none; border-top: 0.5px solid #eee; margin: 1.25rem 0; }
+.demo-link { text-align: center; }
+.demo-link button { background: none; border: none; color: #1d4ed8; font-size: 12px; cursor: pointer; text-decoration: underline; font-family: inherit; }
+
+/* CORS warning */
+.cors-warning { background: #fffbeb; border: 0.5px solid #fcd34d; border-radius: 7px; padding: 0.75rem 1rem; font-size: 11px; color: #78350f; margin-bottom: 1rem; line-height: 1.6; display: none; }
+
+/* Main */
+.main-section { display: none; }
+.stats-bar { max-width: 100%; margin: 1.25rem 1.5rem 1rem; display: flex; gap: 1rem; }
+.stat-card { flex: 1; background: #fff; border-radius: 10px; padding: 0.9rem 1.1rem; border: 0.5px solid #e5e3de; }
+.stat-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+.stat-value { font-size: 22px; font-weight: 600; }
+.stat-value.l1 { color: #c48a00; }
+.stat-value.l2 { color: #d45a1a; }
+.stat-value.l3 { color: #c0201a; }
+.stat-value.total { color: #1a1a2e; }
+
+.toolbar {
+  margin: 0 1.5rem 0.75rem; display: flex; gap: 0.75rem;
+  align-items: center; flex-wrap: wrap;
+}
+.filter-btn {
+  font-size: 12px; padding: 5px 14px; border-radius: 20px;
+  border: 0.5px solid #ddd; background: #fff; cursor: pointer;
+  transition: all 0.15s; font-family: inherit;
+}
+.filter-btn:hover { border-color: #e8361a; color: #e8361a; }
+.filter-btn.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+.export-btn {
+  font-size: 12px; padding: 6px 16px; border-radius: 6px; border: none;
+  background: #e8361a; color: #fff; cursor: pointer; font-family: inherit;
+  font-weight: 500; transition: background 0.15s;
+}
+.export-btn:hover { background: #c42d15; }
+.refresh-btn {
+  font-size: 12px; padding: 6px 14px; border-radius: 6px;
+  border: 0.5px solid #d0cec8; background: #fff; cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+}
+.refresh-btn:hover { border-color: #1a1a2e; }
+.disconnect-btn {
+  font-size: 12px; padding: 6px 14px; border-radius: 6px;
+  border: 0.5px solid #fca5a5; background: #fff5f5; color: #991b1b;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+
+.table-wrap { margin: 0 1.5rem 2rem; overflow-x: auto; }
+.section-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #888; padding: 0.5rem 0; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; background: #fff; border-radius: 10px; border: 0.5px solid #e5e3de; min-width: 1600px; }
+thead tr.group-row th {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.4px;
+  text-transform: uppercase; padding: 5px 8px; text-align: center;
+  border: 0.5px solid rgba(255,255,255,0.15);
+}
+thead tr.col-row th {
+  font-size: 11px; font-weight: 500; padding: 7px 8px; text-align: left;
+  border: 0.5px solid #e5e3de; color: #444; background: #f8f7f4;
+  white-space: nowrap; position: sticky; top: 0;
+}
+tbody tr { border-bottom: 0.5px solid #eeece8; }
+tbody tr:hover { background: #fafaf8; }
+tbody td { padding: 7px 8px; vertical-align: middle; border-right: 0.5px solid #eeece8; }
+tbody td:last-child { border-right: none; }
+
+.level-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.level-badge.L1 { background: #fef3c7; color: #92400e; }
+.level-badge.L2 { background: #fed7aa; color: #7c2d12; }
+.level-badge.L3 { background: #fee2e2; color: #7f1d1d; }
+
+.row-L1 td.flag-col { border-left: 3px solid #f59e0b; }
+.row-L2 td.flag-col { border-left: 3px solid #ea580c; }
+.row-L3 td.flag-col { border-left: 3px solid #dc2626; }
+
+.metric { font-family: 'SF Mono', 'Consolas', monospace; font-size: 11px; }
+.metric.neg { color: #c0201a; font-weight: 500; }
+.metric.pos { color: #15803d; }
+
+.note-input {
+  width: 100%; min-width: 130px; border: 0.5px solid #e0ded8; border-radius: 5px;
+  padding: 4px 7px; font-size: 11px; font-family: inherit; background: #fafaf8;
+  resize: vertical; min-height: 32px; color: #1a1a1a; transition: border-color 0.15s;
+}
+.note-input:focus { outline: none; border-color: #e8361a; background: #fff; }
+.note-input:disabled { background: #f4f3f0; color: #ccc; cursor: not-allowed; }
+
+.esc-badge { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+.esc-new { background: #fef9c3; color: #713f12; }
+.esc-ongoing { background: #fee2e2; color: #7f1d1d; }
+
+.col-group-source { background: #1a1a2e; color: #d0d0e8; }
+.col-group-flag { background: #3d3000; color: #fde68a; }
+.col-group-l1 { background: #78350f; color: #fde68a; }
+.col-group-l2 { background: #7c2d12; color: #fed7aa; }
+.col-group-l3 { background: #7f1d1d; color: #fecaca; }
+.col-group-comment { background: #164e63; color: #bae6fd; }
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.88); display: none;
+  flex-direction: column; align-items: center; justify-content: center; z-index: 200;
+}
+.spinner {
+  width: 34px; height: 34px; border: 3px solid #e5e3de;
+  border-top-color: #e8361a; border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin-bottom: 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-msg { font-size: 13px; color: #555; }
+
+/* Saved indicator */
+.saved-toast {
+  position: fixed; bottom: 1.5rem; right: 1.5rem;
+  background: #1a1a2e; color: #fff; font-size: 12px; padding: 8px 16px;
+  border-radius: 8px; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+}
+.saved-toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loadingMsg">Connecting to Tableau Server...</div>
+</div>
+
+<div class="saved-toast" id="savedToast">Notes auto-saved</div>
+
+<div class="app-header">
+  <div>
+    <h1>Workforce Productivity — Flag Review Tracker</h1>
+    <div class="subtitle">Workforce Productivity Last Six Pay Periods &bull; Escalation Annotation Tool</div>
+  </div>
+  <div class="header-right">
+    <span class="conn-status disconnected" id="connStatus">Not connected</span>
+    <div class="header-badge">SMCH</div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginSection" class="login-wrap">
+  <div class="login-card">
+    <h2>Connect to Tableau Server</h2>
+    <p class="intro">Authenticate to pull live data from the published workbook. Credentials are used for this session only and are never stored.</p>
+
+    <div class="api-note">
+      This app uses the <strong>Tableau REST API</strong> to authenticate and query the
+      <em>Workforce Productivity Last Six Pay Periods</em> view. If you hit a connection
+      error, your IS team may need to enable CORS on your Tableau Server for this page's domain.
+    </div>
+
+    <div class="cors-warning" id="corsWarning">
+      <strong>CORS note:</strong> If you see a network error below, your Tableau Server is blocking
+      cross-origin requests from this page. Options: (1) open this HTML file directly from a machine
+      on the same network as Tableau Server, (2) ask IS to whitelist this domain in Tableau Server's
+      CORS settings, or (3) use the demo mode below to annotate with manually entered data.
+    </div>
+
+    <div class="form-group">
+      <label>Tableau Server URL</label>
+      <input type="text" id="serverUrl" placeholder="https://tableau.yourhospital.org" />
+      <div class="form-hint">Include https:// — no trailing slash</div>
+    </div>
+    <div class="form-group">
+      <label>Site ID</label>
+      <input type="text" id="siteId" placeholder="e.g. smch or lucilepackard" />
+      <div class="form-hint">Found in your Tableau URL after /site/</div>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="your.name@domain.org" autocomplete="username" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <div class="form-group">
+      <label>Workbook name <span style="font-weight:400;color:#aaa;">(optional)</span></label>
+      <input type="text" id="workbookName" placeholder="Leave blank to auto-search by view name" />
+    </div>
+
+    <button class="login-btn" id="connectBtn" onclick="connectToTableau()">Connect &amp; Load Data</button>
+    <div class="error-msg" id="errorMsg"></div>
+
+    <hr class="divider" />
+    <div class="demo-link">
+      <button onclick="loadDemoData()">Use demo data instead (no Tableau needed)</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN TRACKER -->
+<div id="mainSection" class="main-section">
+  <div class="stats-bar" id="statsBar"></div>
+
+  <div class="toolbar">
+    <span style="font-size:12px;color:#555;font-weight:500;">Filter:</span>
+    <button class="filter-btn active" onclick="setFilter('all',this)">All flagged</button>
+    <button class="filter-btn" onclick="setFilter('L1',this)">Level 1</button>
+    <button class="filter-btn" onclick="setFilter('L2',this)">Level 2</button>
+    <button class="filter-btn" onclick="setFilter('L3',this)">Level 3</button>
+    <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">&#8635; Refresh from Tableau</button>
+    <button class="export-btn" onclick="exportCSV()">Export notes CSV</button>
+    <button class="disconnect-btn" onclick="disconnect()">Disconnect</button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="section-label" id="viewLabel">Flagged cost centers</div>
+    <table id="mainTable">
+      <thead>
+        <tr class="group-row">
+          <th colspan="5" class="col-group-source">Source data (Tableau)</th>
+          <th colspan="2" class="col-group-flag">Flagging</th>
+          <th colspan="3" class="col-group-l1">Level 1 annotations</th>
+          <th colspan="5" class="col-group-l2">Level 2 annotations</th>
+          <th colspan="5" class="col-group-l3">Level 3 annotations</th>
+          <th colspan="1" class="col-group-comment">Commenter</th>
+        </tr>
+        <tr class="col-row">
+          <th>Cost Center</th>
+          <th>Flex Variance</th>
+          <th>Target</th>
+          <th>Actual</th>
+          <th>Prod Index %</th>
+          <th>Level</th>
+          <th>Escalation Status</th>
+          <th>Key Drivers of Variance</th>
+          <th>Opportunities to Address</th>
+          <th>Planned Action Items</th>
+          <th>Key Drivers (L2)</th>
+          <th>Adjusted Plan to Address Variance</th>
+          <th>Support Needed (L2)</th>
+          <th>Timeline (L2)</th>
+          <th>How Success Tracked (L2)</th>
+          <th>Link to Improvement Plan</th>
+          <th>Support Needed (L3)</th>
+          <th>Timeline (L3)</th>
+          <th>How Success Tracked (L3)</th>
+          <th>Commenter</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+var allRows = [];
+var currentFilter = 'all';
+var notesData = {};
+var sessionToken = null;
+var serverBase = '';
+var siteIdEncoded = '';
+var targetViewId = '';
+var targetViewName = '';
+var saveTimer = null;
+
+// Load saved notes from localStorage on startup
+try {
+  var saved = localStorage.getItem('workforce_flag_notes');
+  if (saved) notesData = JSON.parse(saved);
+} catch(e) {}
+
+function connectToTableau() {
+  var serverUrl = document.getElementById('serverUrl').value.trim().replace(/\/$/, '');
+  var siteId = document.getElementById('siteId').value.trim();
+  var username = document.getElementById('username').value.trim();
+  var password = document.getElementById('password').value;
+
+  if (!serverUrl || !username || !password) {
+    showError('Please fill in Server URL, username, and password.');
+    return;
+  }
+
+  serverBase = serverUrl;
+  document.getElementById('connectBtn').disabled = true;
+  document.getElementById('errorMsg').style.display = 'none';
+  showLoading('Authenticating with Tableau Server...');
+
+  var body = JSON.stringify({
+    credentials: {
+      name: username,
+      password: password,
+      site: { contentUrl: siteId }
+    }
+  });
+
+  fetch(serverUrl + '/api/3.19/auth/signin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: body
+  })
+  .then(function(res) {
+    if (!res.ok) return res.text().then(function(t) { throw new Error('Auth failed (' + res.status + '): ' + t); });
+    return res.json();
+  })
+  .then(function(data) {
+    sessionToken = data.credentials.token;
+    siteIdEncoded = data.credentials.site.id;
+    showLoading('Searching for Workforce Productivity view...');
+    return fetch(serverUrl + '/api/3.19/sites/' + siteIdEncoded + '/views?filter=name:eq:Workforce Productivity Last Six Pay Periods&pageSize=10', {
+      headers: { 'X-Tableau-Auth': sessionToken, 'Accept': 'application/json' }
+    });
+  })
+  .then(function(res) {
+    if (!res.ok) throw new Error('Could not search views (' + res.status + ')');
+    return res.json();
+  })
+  .then(function(data) {
+    var views = (data.views && data.views.view) || [];
+    var view = views[0];
+    if (!view) {
+      // Broader search
+      showLoading('Doing broader view search...');
+      return fetch(serverBase + '/api/3.19/sites/' + siteIdEncoded + '/views?pageSize=200', {
+        headers: { 'X-Tableau-Auth': sessionToken, 'Accept': 'application/json' }
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var all = (d.views && d.views.view) || [];
+        view = all.find(function(v) {
+          return v.name.toLowerCase().includes('workforce') && v.name.toLowerCase().includes('productivity');
+        });
+        if (!view) throw new Error('Could not find "Workforce Productivity Last Six Pay Periods" view. Confirm the view is published and you have access.');
+        return view;
+      });
+    }
+    return view;
+  })
+  .then(function(view) {
+    targetViewId = view.id;
+    targetViewName = view.name;
+    showLoading('Found "' + view.name + '" — fetching data...');
+    return fetch(serverBase + '/api/3.19/sites/' + siteIdEncoded + '/views/' + view.id + '/data?maxAge=1', {
+      headers: { 'X-Tableau-Auth': sessionToken, 'Accept': 'text/csv' }
+    });
+  })
+  .then(function(res) {
+    if (!res.ok) throw new Error('Could not retrieve view data (' + res.status + '). Check download permissions on this view in Tableau Server.');
+    return res.text();
+  })
+  .then(function(csv) {
+    parseCSVandRender(csv);
+    document.getElementById('connStatus').textContent = 'Connected';
+    document.getElementById('connStatus').className = 'conn-status connected';
+    document.getElementById('viewLabel').textContent = 'Flagged cost centers — ' + targetViewName;
+    document.getElementById('refreshBtn').style.display = '';
+  })
+  .catch(function(err) {
+    document.getElementById('corsWarning').style.display = 'block';
+    showError(err.message || 'Connection failed. See the note above about CORS.');
+    console.error(err);
+  })
+  .finally(function() {
+    hideLoading();
+    document.getElementById('connectBtn').disabled = false;
+  });
+}
+
+function refreshData() {
+  if (!sessionToken || !targetViewId) { alert('Not connected. Please reconnect.'); return; }
+  showLoading('Refreshing data from Tableau...');
+  fetch(serverBase + '/api/3.19/sites/' + siteIdEncoded + '/views/' + targetViewId + '/data?maxAge=0', {
+    headers: { 'X-Tableau-Auth': sessionToken, 'Accept': 'text/csv' }
+  })
+  .then(function(res) {
+    if (!res.ok) throw new Error('Refresh failed (' + res.status + ')');
+    return res.text();
+  })
+  .then(function(csv) { parseCSVandRender(csv); })
+  .catch(function(err) { alert('Refresh failed: ' + err.message); })
+  .finally(function() { hideLoading(); });
+}
+
+function parseCSVandRender(csvText) {
+  var lines = csvText.trim().split('\n');
+  if (lines.length < 2) throw new Error('View returned no data rows.');
+
+  var headers = lines[0].split(',').map(function(h) { return h.replace(/^"|"$/g, '').trim().toLowerCase(); });
+
+  var flexIdx = headers.findIndex(function(h) { return h.includes('flex') && (h.includes('var') || h.includes('variance')); });
+  var prodIdx = headers.findIndex(function(h) { return (h.includes('prod') || h.includes('productivity')) && h.includes('index'); });
+  var targetIdx = headers.findIndex(function(h) { return h === 'target'; });
+  var actualIdx = headers.findIndex(function(h) { return h === 'actual'; });
+  var ccIdx = headers.findIndex(function(h) { return (h.includes('cost') && h.includes('center')) || h.includes('department') || h.includes('dept'); });
+  var prevIdx = headers.findIndex(function(h) { return h.includes('prev') || h.includes('prior'); });
+  var prev2Idx = headers.findIndex(function(h) { return (h.includes('prev') || h.includes('prior')) && h.includes('prev'); });
+
+  if (flexIdx === -1 || prodIdx === -1) {
+    throw new Error('Could not find required columns.\n\nColumns found: ' + headers.join(', ') + '\n\nExpected columns containing "flex variance" and "productivity index". Please verify the view\'s column names match.');
+  }
+
+  var rows = [];
+  for (var i = 1; i < lines.length; i++) {
+    var cols = parseCSVLine(lines[i]);
+    if (cols.length < 2) continue;
+    var fv = parseFloat(cols[flexIdx]);
+    var pi = parseFloat(cols[prodIdx]);
+    if (isNaN(fv) || isNaN(pi)) continue;
+    var prevFlagged = prevIdx > -1 ? (cols[prevIdx] || '').toLowerCase() === 'true' || cols[prevIdx] === '1' || cols[prevIdx] === 'Yes' : false;
+    var prevPrevFlagged = prev2Idx > -1 ? (cols[prev2Idx] || '').toLowerCase() === 'true' || cols[prev2Idx] === '1' : false;
+    rows.push({
+      costCenter: ccIdx > -1 ? cols[ccIdx].replace(/^"|"$/g, '') : 'Row ' + i,
+      flexVariance: fv,
+      target: targetIdx > -1 ? parseFloat(cols[targetIdx]) : null,
+      actual: actualIdx > -1 ? parseFloat(cols[actualIdx]) : null,
+      productivityIndex: pi,
+      prevFlagged: prevFlagged,
+      prevPrevFlagged: prevPrevFlagged,
+    });
+  }
+
+  processRows(rows);
+}
+
+function parseCSVLine(line) {
+  var result = [], cur = '', inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    if (line[i] === '"') { inQ = !inQ; }
+    else if (line[i] === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += line[i];
+  }
+  result.push(cur);
+  return result;
+}
+
+function getLevel(row) {
+  var flagged = row.productivityIndex < 0.95 && row.flexVariance < -2;
+  if (!flagged) return null;
+  if (row.prevPrevFlagged) return 'L3';
+  if (row.prevFlagged) return 'L2';
+  return 'L1';
+}
+
+function processRows(rows) {
+  allRows = rows.map(function(r) { return Object.assign({}, r, { level: getLevel(r) }); }).filter(function(r) { return r.level !== null; });
+  document.getElementById('loginSection').style.display = 'none';
+  document.getElementById('mainSection').style.display = 'block';
+  renderStats();
+  renderTable();
+}
+
+function loadDemoData() {
+  var depts = [
+    '4N Medical/Surgical','ICU - Pediatric','NICU - Level IV','ED - Main','OR - Periop',
+    'Cardiology Step Down','Neurology Unit','Hematology/Oncology','Bone Marrow Transplant',
+    'Pulmonology','Labor & Delivery','PICU','Surgical Step Down','GI/Hepatology',
+    'Cardiovascular OR','Float Pool - RN','Dialysis Unit','Wound Care','Burn Unit','Respiratory Therapy'
+  ];
+  var rows = depts.map(function(name) {
+    var fv = parseFloat((Math.random() * 12 - 9).toFixed(3));
+    var pi = parseFloat((0.80 + Math.random() * 0.22).toFixed(4));
+    var pf = Math.random() > 0.5;
+    return { costCenter: name, flexVariance: fv, target: parseFloat((0.90 + Math.random() * 0.10).toFixed(4)),
+      actual: parseFloat((pi * (0.90 + Math.random() * 0.10)).toFixed(4)), productivityIndex: pi,
+      prevFlagged: pf, prevPrevFlagged: pf && Math.random() > 0.55 };
+  });
+  document.getElementById('connStatus').textContent = 'Demo mode';
+  document.getElementById('connStatus').className = 'conn-status connected';
+  document.getElementById('refreshBtn').style.display = 'none';
+  processRows(rows);
+}
+
+function disconnect() {
+  sessionToken = null; allRows = []; currentFilter = 'all';
+  document.getElementById('mainSection').style.display = 'none';
+  document.getElementById('loginSection').style.display = 'block';
+  document.getElementById('connStatus').textContent = 'Not connected';
+  document.getElementById('connStatus').className = 'conn-status disconnected';
+  document.getElementById('password').value = '';
+}
+
+function renderStats() {
+  var l1 = allRows.filter(function(r) { return r.level === 'L1'; }).length;
+  var l2 = allRows.filter(function(r) { return r.level === 'L2'; }).length;
+  var l3 = allRows.filter(function(r) { return r.level === 'L3'; }).length;
+  document.getElementById('statsBar').innerHTML =
+    '<div class="stat-card"><div class="stat-label">Total Flagged</div><div class="stat-value total">' + allRows.length + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Level 1</div><div class="stat-value l1">' + l1 + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Level 2</div><div class="stat-value l2">' + l2 + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">Level 3</div><div class="stat-value l3">' + l3 + '</div></div>';
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  renderTable();
+}
+
+function getNote(id, f) { return (notesData[id] && notesData[id][f]) || ''; }
+
+function setNote(id, f, val) {
+  if (!notesData[id]) notesData[id] = {};
+  notesData[id][f] = val;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function() {
+    try { localStorage.setItem('workforce_flag_notes', JSON.stringify(notesData)); } catch(e) {}
+    var toast = document.getElementById('savedToast');
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 2000);
+  }, 800);
+}
+
+function renderTable() {
+  var rows = currentFilter === 'all' ? allRows : allRows.filter(function(r) { return r.level === currentFilter; });
+  var tbody = document.getElementById('tableBody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;padding:2rem;color:#aaa;font-size:13px;">No rows match this filter.</td></tr>';
+    return;
+  }
+  var html = '';
+  rows.forEach(function(row, i) {
+    var id = row.costCenter.replace(/\W+/g, '_') + '_' + i;
+    var fvC = row.flexVariance < 0 ? 'neg' : 'pos';
+    var piC = row.productivityIndex < 0.95 ? 'neg' : 'pos';
+    var isL2p = row.level === 'L2' || row.level === 'L3';
+    var isL3 = row.level === 'L3';
+    var escLabel = row.level === 'L1' ? 'New flag' : row.level === 'L2' ? 'Ongoing — L2' : 'Ongoing — L3';
+    var escCls = row.level === 'L1' ? 'esc-new' : 'esc-ongoing';
+
+    function ta(f, enabled) {
+      var dis = enabled ? '' : 'disabled';
+      var val = getNote(id, f);
+      return '<textarea class="note-input" rows="2" ' + dis + ' onchange="setNote(\'' + id + '\',\'' + f + '\',this.value)">' + escHtml(val) + '</textarea>';
+    }
+
+    html += '<tr class="row-' + row.level + '">' +
+      '<td class="flag-col" style="font-weight:500;white-space:nowrap;">' + escHtml(row.costCenter) + '</td>' +
+      '<td class="metric ' + fvC + '">' + row.flexVariance.toFixed(2) + '</td>' +
+      '<td class="metric">' + (row.target != null ? row.target.toFixed(4) : '&mdash;') + '</td>' +
+      '<td class="metric">' + (row.actual != null ? row.actual.toFixed(4) : '&mdash;') + '</td>' +
+      '<td class="metric ' + piC + '">' + (row.productivityIndex * 100).toFixed(1) + '%</td>' +
+      '<td><span class="level-badge ' + row.level + '">' + row.level + '</span></td>' +
+      '<td><span class="esc-badge ' + escCls + '">' + escLabel + '</span></td>' +
+      '<td>' + ta('l1_drivers', true) + '</td>' +
+      '<td>' + ta('l1_opps', true) + '</td>' +
+      '<td>' + ta('l1_action', true) + '</td>' +
+      '<td>' + ta('l2_drivers', isL2p) + '</td>' +
+      '<td>' + ta('l2_plan', isL2p) + '</td>' +
+      '<td>' + ta('l2_support', isL2p) + '</td>' +
+      '<td>' + ta('l2_timeline', isL2p) + '</td>' +
+      '<td>' + ta('l2_success', isL2p) + '</td>' +
+      '<td>' + ta('l3_link', isL3) + '</td>' +
+      '<td>' + ta('l3_support', isL3) + '</td>' +
+      '<td>' + ta('l3_timeline', isL3) + '</td>' +
+      '<td>' + ta('l3_success', isL3) + '</td>' +
+      '<td>' + ta('commenter', isL3) + '</td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function exportCSV() {
+  var rows = currentFilter === 'all' ? allRows : allRows.filter(function(r) { return r.level === currentFilter; });
+  var headers = ['Cost Center','Flex Variance','Target','Actual','Prod Index %','Level','Escalation Status',
+    'L1 Key Drivers','L1 Opportunities','L1 Action Items',
+    'L2 Key Drivers','L2 Adjusted Plan','L2 Support Needed','L2 Timeline','L2 Success Tracked',
+    'L3 Link to Plan','L3 Support Needed','L3 Timeline','L3 Success Tracked','Commenter'];
+  var out = [headers.join(',')];
+  rows.forEach(function(row, i) {
+    var id = row.costCenter.replace(/\W+/g, '_') + '_' + i;
+    function g(f) { return '"' + (getNote(id, f) || '').replace(/"/g, '""') + '"'; }
+    out.push([
+      '"' + row.costCenter + '"', row.flexVariance.toFixed(2),
+      row.target != null ? row.target.toFixed(4) : '',
+      row.actual != null ? row.actual.toFixed(4) : '',
+      (row.productivityIndex * 100).toFixed(1) + '%',
+      row.level, row.level === 'L1' ? 'New Flag' : row.level === 'L2' ? 'Ongoing L2' : 'Ongoing L3',
+      g('l1_drivers'), g('l1_opps'), g('l1_action'),
+      g('l2_drivers'), g('l2_plan'), g('l2_support'), g('l2_timeline'), g('l2_success'),
+      g('l3_link'), g('l3_support'), g('l3_timeline'), g('l3_success'), g('commenter')
+    ].join(','));
+  });
+  var blob = new Blob([out.join('\n')], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'workforce_productivity_flag_notes.csv';
+  a.click();
+}
+
+function showLoading(msg) {
+  document.getElementById('loadingMsg').textContent = msg;
+  document.getElementById('loadingOverlay').style.display = 'flex';
+}
+function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
+function showError(msg) {
+  var el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+</script>
+</body>
+</html>
