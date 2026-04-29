@@ -318,7 +318,7 @@ function loadColumnsFromTableau() {
   // Find the workforce productivity worksheet by exact name, then fallback
   var sheetNames = worksheets.map(function(ws) { return ws.name; });
   var targetSheet = worksheets.find(function(ws) {
-    return ws.name === 'Workforce Productivity - Last 6 Pay Periods';
+    return ws.name === 'Workforce - Webapp';
   }) || worksheets.find(function(ws) {
     return ws.name.toLowerCase().includes('workforce') && ws.name.toLowerCase().includes('last');
   }) || worksheets.find(function(ws) {
