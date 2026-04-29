@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Workforce Productivity — Flag Review Tracker</title>
 <!-- Tableau Extensions API -->
-<script src="https://cdn.jsdelivr.net/npm/@tableau/extensions-api@1.12.0/lib/tableau.extensions.1.latest.min.js"></script>
+<script src="https://extensions.tableauusercontent.com/resources/tableau.extensions.1.latest.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f5f4f1; min-height: 100vh; color: #1a1a1a; font-size: 13px; }
@@ -281,6 +281,16 @@ var tableauData = [];
 
 // Load saved notes
 try { var s = localStorage.getItem('smch_flag_notes'); if (s) notesData = JSON.parse(s); } catch(e) {}
+
+// Auto-initialize Tableau extension on load - required so Tableau removes its loading overlay
+window.addEventListener('load', function() {
+  if (typeof tableau !== 'undefined' && tableau.extensions) {
+    tableau.extensions.initializeAsync().then(function() {
+      document.getElementById('connStatus').textContent = 'Ready';
+      document.getElementById('connStatus').className = 'conn-status connected';
+    }).catch(function(err) { console.error('Tableau init:', err); });
+  }
+});
 
 function initExtension() {
   document.getElementById('connStatus').textContent = 'Initializing...';
