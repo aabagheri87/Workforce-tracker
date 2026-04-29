@@ -280,10 +280,13 @@ var tableauData = [];
 // Load saved notes
 try { var s = localStorage.getItem('smch_flag_notes'); if (s) notesData = JSON.parse(s); } catch(e) {}
 
-// Auto-initialize Tableau extension on load - required so Tableau removes its loading overlay
+var tableauInitialized = false;
+
+// Auto-initialize on load — Tableau requires initializeAsync to be called once on load
 window.addEventListener('load', function() {
   if (typeof tableau !== 'undefined' && tableau.extensions) {
     tableau.extensions.initializeAsync().then(function() {
+      tableauInitialized = true;
       document.getElementById('connStatus').textContent = 'Ready';
       document.getElementById('connStatus').className = 'conn-status connected';
     }).catch(function(err) { console.error('Tableau init:', err); });
@@ -291,22 +294,39 @@ window.addEventListener('load', function() {
 });
 
 function initExtension() {
-  document.getElementById('connStatus').textContent = 'Initializing...';
+  document.getElementById('connStatus').textContent = 'Connecting...';
   document.getElementById('connStatus').className = 'conn-status loading';
   document.getElementById('errorBox').style.display = 'none';
 
-  tableau.extensions.initializeAsync().then(function() {
+  if (tableauInitialized) {
+    // Already initialized — go straight to loading columns
     document.getElementById('connStatus').textContent = 'Connected';
     document.getElementById('connStatus').className = 'conn-status connected';
     loadColumnsFromTableau();
-  }).catch(function(err) {
-    document.getElementById('connStatus').textContent = 'Error';
-    document.getElementById('connStatus').className = 'conn-status disconnected';
-    var eb = document.getElementById('errorBox');
-    eb.textContent = 'Could not connect to Tableau: ' + (err.message || err);
-    eb.style.display = 'block';
-    console.error(err);
-  });
+  } else {
+    // Not yet initialized — try initializing now
+    if (typeof tableau !== 'undefined' && tableau.extensions) {
+      tableau.extensions.initializeAsync().then(function() {
+        tableauInitialized = true;
+        document.getElementById('connStatus').textContent = 'Connected';
+        document.getElementById('connStatus').className = 'conn-status connected';
+        loadColumnsFromTableau();
+      }).catch(function(err) {
+        document.getElementById('connStatus').textContent = 'Error';
+        document.getElementById('connStatus').className = 'conn-status disconnected';
+        var eb = document.getElementById('errorBox');
+        eb.textContent = 'Could not connect to Tableau: ' + (err.message || err);
+        eb.style.display = 'block';
+        console.error(err);
+      });
+    } else {
+      var eb = document.getElementById('errorBox');
+      eb.textContent = 'Tableau Extensions API not found. Make sure this is loaded inside a Tableau dashboard.';
+      eb.style.display = 'block';
+      document.getElementById('connStatus').textContent = 'Error';
+      document.getElementById('connStatus').className = 'conn-status disconnected';
+    }
+  }
 }
 
 function loadColumnsFromTableau() {
