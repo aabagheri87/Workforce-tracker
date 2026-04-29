@@ -524,10 +524,9 @@ function getUser() {
 function commenterCell(id) {
   var existing = getNote(id, 'commenter');
   if (existing) {
-    return '<div style="font-size:10px;color:#444;padding:3px 6px;background:#f8f7f4;border-radius:4px;line-height:1.5;">' + esc(existing) + '</div>' +
-      '<button onclick="clearCommenter('' + id + '')" style="font-size:9px;color:#aaa;background:none;border:none;cursor:pointer;margin-top:2px;">clear</button>';
+    return '<div style="font-size:10px;color:#444;padding:3px 6px;background:#f8f7f4;border-radius:4px;line-height:1.5;">' + esc(existing) + '</div><button onclick="clearCommenter(\x27' + id + '\x27)" style="font-size:9px;color:#aaa;background:none;border:none;cursor:pointer;margin-top:2px;">clear</button>';
   }
-  return '<button onclick="stampCommenter('' + id + '')" style="font-size:10px;padding:3px 8px;border-radius:4px;border:0.5px solid #d0cec8;background:#fff;cursor:pointer;font-family:inherit;">Sign &amp; date</button>';
+  return '<button onclick="stampCommenter(\x27' + id + '\x27)" style="font-size:10px;padding:3px 8px;border-radius:4px;border:0.5px solid #d0cec8;background:#fff;cursor:pointer;font-family:inherit;">Sign and date</button>';
 }
 
 function stampCommenter(id) {
