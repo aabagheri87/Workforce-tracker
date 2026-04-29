@@ -236,7 +236,7 @@ tbody td:last-child { border-right: none; }
     <table>
       <thead>
         <tr class="group-row">
-          <th colspan="5" class="col-group-source">Source (Tableau)</th>
+          <th colspan="3" class="col-group-source">Source (Tableau)</th>
           <th colspan="2" class="col-group-flag">Flagging</th>
           <th colspan="3" class="col-group-l1">Level 1 annotations</th>
           <th colspan="5" class="col-group-l2">Level 2 annotations</th>
@@ -246,8 +246,6 @@ tbody td:last-child { border-right: none; }
         <tr class="col-row">
           <th>Cost Center</th>
           <th>Flex Variance</th>
-          <th>Target</th>
-          <th>Actual</th>
           <th>Prod Index %</th>
           <th>Level</th>
           <th>Escalation Status</th>
@@ -489,11 +487,47 @@ function setNote(id, f, val) {
   }, 600);
 }
 
+var currentUser = null;
+
+function getUser() {
+  if (currentUser) return currentUser;
+  var u = localStorage.getItem('smch_username');
+  if (!u) {
+    u = prompt('Enter your name to identify your comments:', '');
+    if (!u || u.trim() === '') u = 'Anonymous';
+    localStorage.setItem('smch_username', u.trim());
+  }
+  currentUser = u.trim();
+  return currentUser;
+}
+
+function commenterCell(id) {
+  var existing = getNote(id, 'commenter');
+  if (existing) {
+    return '<div style="font-size:10px;color:#444;padding:3px 6px;background:#f8f7f4;border-radius:4px;line-height:1.5;">' + esc(existing) + '</div>' +
+      '<button onclick="clearCommenter('' + id + '')" style="font-size:9px;color:#aaa;background:none;border:none;cursor:pointer;margin-top:2px;">clear</button>';
+  }
+  return '<button onclick="stampCommenter('' + id + '')" style="font-size:10px;padding:3px 8px;border-radius:4px;border:0.5px solid #d0cec8;background:#fff;cursor:pointer;font-family:inherit;">Sign &amp; date</button>';
+}
+
+function stampCommenter(id) {
+  var user = getUser();
+  var now = new Date();
+  var stamp = user + ' — ' + (now.getMonth()+1) + '/' + now.getDate() + '/' + now.getFullYear();
+  setNote(id, 'commenter', stamp);
+  renderTable();
+}
+
+function clearCommenter(id) {
+  setNote(id, 'commenter', '');
+  renderTable();
+}
+
 function renderTable() {
   var rows = currentFilter === 'all' ? allRows : allRows.filter(function(r) { return r.level === currentFilter; });
   var tbody = document.getElementById('tableBody');
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;padding:2rem;color:#aaa;">No rows match this filter.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="18" style="text-align:center;padding:2rem;color:#aaa;">No rows match this filter.</td></tr>';
     return;
   }
   var html = '';
@@ -511,8 +545,6 @@ function renderTable() {
     html += '<tr class="row-' + row.level + '">' +
       '<td class="flag-col" style="font-weight:500;white-space:nowrap;">' + esc(row.costCenter) + '</td>' +
       '<td class="metric ' + fvC + '">' + row.flexVariance.toFixed(2) + '</td>' +
-      '<td class="metric">' + (row.target != null ? row.target.toFixed(4) : '&mdash;') + '</td>' +
-      '<td class="metric">' + (row.actual != null ? row.actual.toFixed(4) : '&mdash;') + '</td>' +
       '<td class="metric ' + piC + '">' + (row.productivityIndex * 100).toFixed(1) + '%</td>' +
       '<td><span class="level-badge ' + row.level + '">' + row.level + '</span></td>' +
       '<td><span class="esc-badge ' + escCls + '">' + escLabel + '</span></td>' +
@@ -528,7 +560,7 @@ function renderTable() {
       '<td>' + ta('l3_support', isL3) + '</td>' +
       '<td>' + ta('l3_timeline', isL3) + '</td>' +
       '<td>' + ta('l3_success', isL3) + '</td>' +
-      '<td>' + ta('commenter', isL3) + '</td>' +
+      '<td>' + (isL3 ? commenterCell(id) : '<div style="background:#f4f3f0;border-radius:4px;padding:4px 6px;font-size:10px;color:#ccc;">N/A</div>') + '</td>' +
       '</tr>';
   });
   tbody.innerHTML = html;
@@ -540,7 +572,7 @@ function esc(s) {
 
 function exportCSV() {
   var rows = currentFilter === 'all' ? allRows : allRows.filter(function(r) { return r.level === currentFilter; });
-  var headers = ['Cost Center','Flex Variance','Target','Actual','Prod Index %','Level','Escalation Status',
+  var headers = ['Cost Center','Flex Variance','Prod Index %','Level','Escalation Status',
     'L1 Key Drivers','L1 Opportunities','L1 Action Items',
     'L2 Key Drivers','L2 Adjusted Plan','L2 Support Needed','L2 Timeline','L2 Success Tracked',
     'L3 Link to Plan','L3 Support Needed','L3 Timeline','L3 Success Tracked','Commenter'];
@@ -550,8 +582,6 @@ function exportCSV() {
     function g(f) { return '"' + (getNote(id, f) || '').replace(/"/g, '""') + '"'; }
     out.push([
       '"' + row.costCenter + '"', row.flexVariance.toFixed(2),
-      row.target != null ? row.target.toFixed(4) : '',
-      row.actual != null ? row.actual.toFixed(4) : '',
       (row.productivityIndex * 100).toFixed(1) + '%',
       row.level, row.level === 'L1' ? 'New Flag' : row.level === 'L2' ? 'Ongoing L2' : 'Ongoing L3',
       g('l1_drivers'), g('l1_opps'), g('l1_action'),
