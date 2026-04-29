@@ -315,9 +315,14 @@ function loadColumnsFromTableau() {
   var dashboard = tableau.extensions.dashboardContent.dashboard;
   var worksheets = dashboard.worksheets;
 
-  // Find the workforce productivity worksheet
+  // Find the workforce productivity worksheet by exact name, then fallback
+  var sheetNames = worksheets.map(function(ws) { return ws.name; });
   var targetSheet = worksheets.find(function(ws) {
-    || ws.name.toLowerCase().includes('productivity');
+    return ws.name === 'Workforce Productivity - Last 6 Pay Periods';
+  }) || worksheets.find(function(ws) {
+    return ws.name.toLowerCase().includes('workforce') && ws.name.toLowerCase().includes('last');
+  }) || worksheets.find(function(ws) {
+    return ws.name.toLowerCase().includes('workforce');
   }) || worksheets[0];
 
   targetSheet.getSummaryDataAsync({ maxRows: 500 }).then(function(data) {
