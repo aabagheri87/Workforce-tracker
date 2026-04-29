@@ -317,7 +317,7 @@ function loadColumnsFromTableau() {
 
   // Find the workforce productivity worksheet
   var targetSheet = worksheets.find(function(ws) {
-    return ws.name.toLowerCase().includes('workforce') || ws.name.toLowerCase().includes('productivity');
+    || ws.name.toLowerCase().includes('productivity');
   }) || worksheets[0];
 
   targetSheet.getSummaryDataAsync({ maxRows: 500 }).then(function(data) {
